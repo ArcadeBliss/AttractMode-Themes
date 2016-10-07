@@ -1,0 +1,63 @@
+local genre_image = fe.add_image("images/unknown.png", fe.layout.width - 188, fe.layout.height - 170, 168, 150);
+
+class GenreImage
+{
+    mode = 1;       //0 = first match, 1 = last match, 2 = random
+    supported = {
+        //filename : [ match1, match2 ]
+        "action": [ "action" ],
+        "adventure": [ "adventure" ],
+        "fighter": [ "fighting", "fighter", "beat'em up" ],
+        "platformer": [ "platformer", "platform" ],
+        "puzzle": [ "puzzle" ],
+        "racing": [ "racing", "driving" ],
+        "rpg": [ "rpg", "role playing", "role playing game" ],
+        "shooter": [ "shooter", "shmup" ],
+        "sports": [ "sports", "boxing", "golf", "baseball", "football", "soccer" ],
+        "strategy": [ "strategy"]
+    }
+
+    ref = null;
+    constructor( image )
+    {
+        ref = image;
+        fe.add_transition_callback( this, "transition" );
+    }
+   
+    function transition( ttype, var, ttime )
+    {
+        if ( ttype == Transition.ToNewSelection || ttype == Transition.ToNewList )
+        {
+            local cat = " " + fe.game_info(Info.Category, var).tolower();
+            local matches = [];
+            foreach( key, val in supported )
+            {
+                foreach( nickname in val )
+                {
+                    if ( cat.find(nickname, 0) ) matches.push(key);
+                }
+            }
+            if ( matches.len() > 0 )
+            {
+                switch( mode )
+                {
+                    case 0:
+                        ref.file_name = "images/" + matches[0] + ".png";
+                        break;
+                    case 1:
+                        ref.file_name = "images/" + matches[matches.len() - 1] + ".png";
+                        break;
+                    case 2:
+                        local random_num = floor(((rand() % 1000 ) / 1000.0) * ((matches.len() - 1) - (0 - 1)) + 0);
+                        ref.file_name = "images/" + matches[random_num] + ".png";
+                        break;
+                }
+            } else
+            {
+                ref.file_name = "images/unknown.png";
+            }
+        }
+    }
+}
+
+GenreImage(genre_image);

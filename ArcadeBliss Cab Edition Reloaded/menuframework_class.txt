@@ -1,0 +1,721 @@
+////////////////////////////////
+//
+//  Define Main Menu Object
+//
+////////////////////////////////
+
+	class arcadebliss_menu
+	{
+
+		
+		
+		// used to animate the menu items
+		gamelist = null; // reference to the gamelist object
+		
+		//frame selection box settings
+		ui_frame_img = null; // frame image
+		ui_sel_x = null; // frame image position index / menu is horizontal only so no y is needed
+		ui_click = null; // toggle navigation click sound 
+			
+		// Misc
+		startpostion_y = null; // starting y position of the menu list
+		item_h = null; // menu list item height
+		item_p = null; // menu list item padding
+		height = null; // height of the menu
+		width = null;  // width of the menu
+		new_x = null;  // x coordinate of the menu item during animation
+		stride = null; // how many pixels to move the current menu item
+		transition_ms = layout_config["ttime"].tointeger(); // how fast to move the menu
+		
+		// Menu Objects
+		slot_names = null;	// name of the menu items in the slot
+		slots = null; 		// container for all the menu item images
+		active_item = null; // the current menu item under the cursor
+		surface = null;		// the surface holding all menu items for animation
+		r_arrow_i = null;	// menu arrow right
+		l_arrow_i = null;	// menu arrow left
+		favorite_slot = null;		// location of the favorite menu item
+		
+		
+		// Navigation Variables
+		name = null; 		// name of the current menu
+		nav_down = null; 	// the menu to navigate to based on navigation settings
+		nav_up = null; 		//  "" "" "" "" ""
+		nav_left = null; 	//  "" "" "" "" ""
+		nav_right = null; 	//  "" "" "" "" ""
+		nav_back = null; 	//  "" "" "" "" ""
+		nav_change = null;  //  flag to signal the current menu has been navigated away from
+		nav_change_to = null // used to determine which menu to navigaton to after deactivation
+		
+		constructor()
+		{
+			slots = [];
+			slot_names = [];
+			stride = scr_w/4;
+			new_x = stride;
+			active_item = 1;
+			
+		}
+		
+		function move_frame(direction)
+		{
+			// animate the menu selection
+			switch ( direction )	
+			{
+				case "left":
+				case "right":
+					update_frame(direction);
+					return true;
+					break;
+					
+				case "up":
+				case "down":
+					nav_change = true;
+					nav_change_to = nav_up;
+					return true;
+					break;
+
+
+				case "select":
+				
+					// open the current menu item
+					// the game our frame is on
+					menu_select();
+					return true;
+					break;
+					
+			
+			}
+			return false;
+		}
+		
+		function menu_select()
+		{
+			// change the active menu to the one selected
+			nav_change = true;
+			nav_change_to = slot_names[active_item];
+		}
+		
+		function update_frame(direction)
+		{
+			// determine how to move
+			local i = 0;
+			local index = null;
+			local resting_spot = null;
+			
+			if (direction == "left")
+			{
+				// move all slots left
+				index = (active_item + 1 == slots.len() ) ? 0 : active_item + 1
+				
+				while (i < 3)
+				{
+					// Loop thru the visible slots and move them to the right
+					if (slots[index].x + stride + slots[index].width > scr_w)
+						resting_spot = slots[index].width + scr_w
+					else
+						resting_spot = slots[index].x + stride
+						
+					animation.add( PropertyAnimation( slots[index], 
+					{   
+						property = "x",
+						tween = Tween.Linear,
+						end = resting_spot,
+						time = transition_ms * 0.5,
+
+					} ) );			
+					i++;
+					index--;
+					if (index < 0 )
+						index = slots.len()-1;
+				
+				}
+				
+				// move the 4th menu item offscreen to the left and animate it in
+				animation.add( PropertyAnimation( slots[index], 
+				{   
+					property = "x",
+					tween = Tween.Linear,
+					start = 0 - slots[index].width,
+					end = stride - (slots[index].width / 2),
+					time = transition_ms  * 0.5,
+
+				} ) );
+				active_item--;
+				if (active_item < 0)
+				active_item = slots.len()-1;	
+			
+			} else {
+				// move all slots right
+				index = (active_item - 1 < 0 ) ? slots.len()-1 : active_item - 1
+				
+				while (i < 3)
+				{
+					// Loop thru the visible slots and move them to the left
+					if (slots[index].x - stride < 0)
+						resting_spot = 0 - slots[index].width
+					else
+						resting_spot = slots[index].x - stride
+						
+					animation.add( PropertyAnimation( slots[index], 
+					{   
+						property = "x",
+						tween = Tween.Linear,
+						end = resting_spot,
+						time = transition_ms * 0.5,
+
+					} ) );			
+					i++;
+					index++;
+					if (index > slots.len()-1 )
+						index = 0;
+				
+				}
+				
+				// move the 4th menu item offscreen to the right and animate it in
+				animation.add( PropertyAnimation( slots[index], 
+				{   
+					property = "x",
+					tween = Tween.Linear,
+					start = scr_w + slots[index].width,
+					end = (stride * 3 ) - (slots[index].width / 2),
+					time = transition_ms  * 0.5,
+
+				} ) );
+				active_item++;
+				if (active_item > slots.len()-1)
+				active_item = 0;
+			
+			} 
+		}
+		
+		function activate()
+		{
+			// only animate if the menu is not in its original spot
+			if (surface.y !=settings.mbkgrd_s.y )
+			{
+				//animate menu up
+				animation.add( PropertyAnimation(surface,
+					{   
+						property = "y",
+						tween = Tween.Expo,
+						easing = Easing.Out,
+						end = settings.mbkgrd_s.y,
+						time = 500,
+					} ) );
+				
+				// animate gameinfo up
+				gamelist.show_gameinfo();
+				
+				// show the menu arrows
+				r_arrow_i.alpha = 255;
+				l_arrow_i.alpha = 255;
+
+				// tell the game list to navigate back to "main"
+				gamelist.nav_up = gamelist.nav_down = "main"
+				
+			}
+			
+			// show the frame
+			ui_frame_img.alpha = 255;
+		}
+		
+		function deactivate()
+		{
+			// hide the frame
+			ui_frame_img.alpha = 0;
+
+			// only animate the menu if a menu item is chosen
+			if ((nav_change == true) && (nav_change_to != "gamelist")) 
+			{
+				//hide the gamelist info
+				gamelist.hide_gameinfo();
+				
+				// tell the gamelist to navigate back to "search" if active
+				if (nav_change_to == "search")
+				{
+					gamelist.nav_up = gamelist.nav_down = "search"
+				}
+				
+				//animate menu down
+				animation.add( PropertyAnimation( surface, 
+					{   
+						property = "y",
+						tween = Tween.Expo,
+						easing = Easing.Out,
+						end = scr_h - surface.height,
+						time = 500,
+
+					} ) );
+				// hide menu arrows
+				r_arrow_i.alpha = 0;
+				l_arrow_i.alpha = 0;
+
+			}
+			
+		}
+		
+		function toggle_fav()
+		{
+			local fav = (fe.game_info(Info.Favourite, gamelist.selection_index) == "1");
+			slots[favorite_slot].file_name = (fav) ? "assets/UIelements/menu_remove_favorite.png" : "assets/UIelements/menu_add_favorite.png";
+		}
+
+		
+		function add_item( item , value )
+		{
+			
+			slots.push(item);
+			slot_names.push(value);
+
+			item.x = new_x - (item.width/2);
+
+			//set the location of favorite so the image can be toggle when needed
+			if (value = "favorite")
+				favorite_slot = slot_names.len() -2;
+			
+			if (new_x + stride + item.width > scr_w)
+				new_x = new_x + scr_w;
+			else
+				new_x = new_x + stride;	
+		}
+			
+	}
+	
+//////////////////////////////////
+//
+// Define Favorite Menu Object
+//
+//////////////////////////////////
+	class FavoriteMenu
+	{
+		name = null;
+		nav_down = null; 	// the menu to navigate to based on navigation settings
+		nav_up = null; 		//  "" "" "" "" ""
+		nav_left = null; 	//  "" "" "" "" ""
+		nav_right = null; 	//  "" "" "" "" ""
+		nav_back = null; 	//  "" "" "" "" ""
+		nav_change = null;  //
+		nav_change_to = null; //
+		gamelist = null;
+		
+		constructor()
+		{
+			nav_change = true;  	//
+			nav_change_to = "main" 	//
+			
+		}
+		
+		function move_frame(direction)
+		{
+			return true;
+		}
+		
+		function activate()
+		{		
+			nav_change = true;  	// immediately go back to the main menu after being activated
+			nav_change_to = "main" 	//
+			gamelist.reset_index();
+			fe.signal("add_favourite");
+			fe.signal("back");
+		}
+		
+		function deactivate()
+		{
+			nav_change = true;  	//
+			nav_change_to = "main" 	//
+		}
+		
+	}
+
+//////////////////////////////////
+//
+// Define Search Object
+//
+//////////////////////////////////
+	class SearchMenu
+	{
+	
+		name = null;
+		keyboard = null;
+		surface = null;			// the surface that is to be animated
+		sounds_active = null;	// turn on/off the menu click sound
+		search_all = null;	// determine if search should change the filter to all when starting
+		current_filter_index = null;
+		nav_down = null; 	// the menu to navigate to based on navigation settings
+		nav_up = null; 		//  "" "" "" "" ""
+		nav_left = null; 	//  "" "" "" "" ""
+		nav_right = null; 	//  "" "" "" "" ""
+		nav_back = null; 	//  "" "" "" "" ""
+		nav_change = null;  //
+		nav_change_to = null //
+		
+		// setup values to draw the keyboard
+		item_x_start = null; //the beginning place to draw the keyboard x
+		item_y_start = null; //the beginning place to draw the keyboard y
+		kb_key_h =  null;
+		kb_key_w =  null;
+		padding_x =  null;
+		padding_y =  null;
+		
+		// Search text box
+		search_box = null;	
+		search_results = null;
+		
+		
+		ui_frame_img = null;		// Selection image
+		ui_sel_x = null;	// cursor position index x
+		ui_sel_y = null;	// cursor position index y
+		
+		constructor()
+		{
+			ui_sel_x = 0;
+			ui_sel_y = 0;
+		}
+		
+		function init_search()
+		{
+			// Add all objects to a surface for later animation
+			surface.alpha = 0;
+			
+			// draw keyboard
+			local i = -1;
+			local col = 0;
+			local x = item_x_start;
+			local y = item_y_start;
+			local key = null;
+			local previous_letter = null;
+			local letter = null;
+			local w = null;
+
+
+			foreach (row in keyboard.name)
+			{	
+				keyboard.img.append({row=[]}); // append a new row
+				y += padding_y;
+				i += 1;
+				x=item_x_start;
+				
+				foreach (letter in keyboard.name[i].row)
+				{	
+
+					if ((letter == "favorite") || (letter == "done"))
+						w = (kb_key_w *3) + padding_x * 2;
+					else if (letter == "SYMSPACE")
+						w = (kb_key_w *4) + padding_x * 3;
+					else 
+						w = kb_key_w;
+					
+					key = surface.add_image("assets/keyboards/" + letter + ".png", x ,y ,w , kb_key_h);
+					keyboard.img[i].row.append(key);
+					
+					x += (padding_x + key.width); // move x the width of the last key and add the padding	
+
+				}
+			}
+			
+			// add the selection graphic above the items 
+			ui_frame_img.set_pos( 
+				keyboard.img[0].row[0].x, 
+				keyboard.img[0].row[0].y,
+				keyboard.img[0].row[0].width,
+				keyboard.img[0].row[0].height);
+			ui_frame_img.zorder = (keyboard.img[i].row[ keyboard.img[i].row.len()-1].zorder) + 1;
+		}
+	
+		function addKeys(letter) // determine which keys to send to the search routine
+		{
+			local str = null;
+			
+			switch (letter)
+			{
+				case "SYM-":
+				case "SYM_":
+				case "SYM.":
+					str = letter.slice(3,4);
+					if (search_box.msg !="")
+						search_box.msg = search_box.msg + str;
+					break;
+				
+				case "SYMDEL":
+					str = search_box.msg;
+					if (str != "" )
+						search_box.msg = str.slice(0, str.len()-1)
+					break;
+				
+				case "favorite":
+				case "done":
+					search_box.msg = "";
+					break;
+				
+				case "SYMSPACE":
+					str = search_box.msg;
+					search_box.msg = str + " ";
+					break;
+				
+				default:
+					search_box.msg = search_box.msg + letter;
+			}
+			applySearch();
+
+		}
+		
+		function applySearch() // perform a search
+		{		
+			local text = null;
+			local results = null;
+			try
+			{
+				text = search_box.msg.tolower();
+				local rule = "Title contains " + _massage(text);
+				//print( "Rule: " + rule );
+				
+				fe.list.search_rule = ( text.len() > 0 ) ? rule : "";
+				(fe.list.search_rule == "") ? search_results.alpha = 0 : search_results.alpha = 255;
+				
+				
+			} catch ( err ) { debug( "Unable to apply filter: " + err ); }
+		}
+		
+		function _massage( str ) // create a regular expression when seaching
+		{
+			
+			// to do: change so the search string is case independent
+			local words = split( str, " " );
+
+			local temp="";
+			foreach ( w in words )
+			{
+				if ( temp.len() > 0 )
+					temp += " ";
+
+				local f = w.slice( 0, 1 );
+				temp += "["+f.toupper()+f.tolower()+"]"+w.slice(1);
+			}
+
+			return temp;
+		}
+				function move_frame(direction)
+		{
+			// animate the menu selection
+			switch ( direction )	
+			{
+				case "left":
+				if ( ui_sel_x > 0 ) 
+				{
+					ui_sel_x--;
+					update_frame();
+				}
+				else
+				{
+					ui_sel_x = keyboard.img[ui_sel_y].row.len()-1;
+					update_frame();
+				}
+				return true;
+				break;
+				
+				case "right":
+				if ( ui_sel_x < keyboard.img[ui_sel_y].row.len()-1 ) 
+				{
+					ui_sel_x++;
+					update_frame();
+				}
+				else
+				{
+					ui_sel_x = 0;
+					update_frame();
+				}
+				return true;
+				break;
+					
+				case "up":
+				if ( ui_sel_y > 0 ) 
+				{
+					ui_sel_y--;
+					update_frame();
+				}
+				else
+				{
+					
+					// go to the gamelist
+					nav_change = true;
+					nav_change_to = nav_up;
+				}
+				return true;
+				break;
+				
+				case "down":
+				if ( ui_sel_y < keyboard.img.len()-1 ) 
+				{
+					ui_sel_y++;
+					if (ui_sel_y == keyboard.img.len()-1 )
+						update_frame(true);
+					else
+						update_frame();
+				}
+				else
+				{
+				// go to the gamelist
+					nav_change = true;
+					nav_change_to = nav_up;
+				}
+				return true;
+				break;
+				
+				case "select":
+					select_key();
+					return true;
+					break;
+					
+				case "back":
+					nav_change = true;
+					nav_change_to = nav_back;
+					return true;
+					break;
+			}
+			return true;
+		}
+		
+		function set_favorite()
+		{
+			fe.signal("add_favourite");	
+		}
+		
+		function update_frame(move_to_last = false)
+		{
+			if (move_to_last)
+			{	
+				if (ui_sel_x < 4)
+					ui_sel_x = 0;
+				else if (ui_sel_x < 8)
+					ui_sel_x = 1;
+				else 
+					ui_sel_x = 2;
+			}
+			
+			
+			ui_frame_img.set_pos(keyboard.img[ui_sel_y].row[ui_sel_x].x, keyboard.img[ui_sel_y].row[ui_sel_x].y);
+			ui_frame_img.width = keyboard.img[ui_sel_y].row[ui_sel_x].width;
+			
+		}
+		
+		function select_key()
+		{
+			// performs action when item under the cursor has been pressed
+			local key = keyboard.img[ui_sel_y].row[ui_sel_x]; // the fe.image object for the chose key
+			local letter = keyboard.name[ui_sel_y].row[ui_sel_x]; // the letter chosen on the on-screen keyboard
+		//	local click = fe.add_sound( fe.script_dir + "sounds/selectclick.mp3", true );
+			
+			
+			animation.add(PropertyAnimation(key,{
+				property = "scale",
+				time = 75,
+				end = 3.5
+			} ));
+			
+			//click.playing = sounds_active;
+			
+			animation.add(PropertyAnimation(key,{
+				property = "scale",
+				time = 75,
+				end = 1.0,
+				delay = 100
+			}));
+			
+			if (letter == "done")
+			{
+				addKeys(letter);
+				nav_change = true;
+				nav_change_to = nav_back;
+			} else if (letter == "favorite") {
+				set_favorite();
+			} else {
+				addKeys(letter);
+				return;
+			}	
+				return; 	 
+		}
+		function activate()
+		{
+			//show the selection box
+			ui_frame_img.alpha = 255;
+			
+			// only animate in if going back to the main menu (configured in "nav_back")
+			if ((nav_change_to == nav_back) || nav_change_to == null)
+			{
+				current_filter_index = fe.list.filter_index;	
+				if (search_all)
+				{
+					local i=0;
+					foreach (filter in fe.filters)
+					{	
+						if (filter.name.toupper() == "ALL")
+						{	
+							fe.list.filter_index = i;
+							break;
+						}	
+						i++;
+					}
+				}
+				// fade menu in
+				animation.add( PropertyAnimation( surface,
+					{   
+						property = "alpha",
+						tween = Tween.Expo,
+						easing = Easing.Out,
+						end = 255,
+						time = 1000,
+					} ) );
+				
+				// create squeeze in animate for the menu
+				animation.add( PropertyAnimation( surface,
+					{   
+						property = "height",
+						tween = Tween.Expo,
+						easing = Easing.Out,
+						start = 0
+						end = scr_h / 2.068965517,
+						time = 600,
+					} ) );
+			}	
+		
+		}
+		
+		function deactivate()
+		{
+
+				//hide the selection box
+				ui_frame_img.alpha = 0;
+				
+				// only animate out if going back to the main menu (configured in "nav_back")
+				if (nav_change_to == nav_back)
+				{
+				
+				// create squeeze out animate for the menu
+				animation.add( PropertyAnimation( surface,
+					{   
+						property = "height",
+						tween = Tween.Expo,
+						easing = Easing.Out,
+						end = 0,
+						time = 600,
+					} ) );		
+
+				// fade menu out
+				animation.add( PropertyAnimation( surface,
+					{   
+						property = "alpha",
+						tween = Tween.Expo,
+						easing = Easing.Out,
+						end = 0,
+						time = 1000,
+					} ) );
+
+		
+				if (search_all)
+				{	
+					fe.list.filter_index = current_filter_index;
+				}
+			}
+		}
+	}

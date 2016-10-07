@@ -1,0 +1,357 @@
+	class Menulist extends Conveyor
+	{
+		
+		menu_type = null;// configure the type of menu object this is references (type{})
+	
+		surface = null; // surface to hold all of the game informaiton and artwork (and other menus) 
+		surface_y = null; // holds original surface height for animations
+		
+		// frame selection box settings 
+		ui_frame_img = null; // the selection frame
+		ui_sel_x = null; // x-coordinate of the frame
+		ui_sel_y = null; // y-coordinate of the frame
+		
+		// Misc. Settings
+		// m_objs: the array contanining the slots
+	//	num_i = null; 		// the index of the current conveyour slot
+		ui_click = null; 	// toggle navigation click sound 
+		menu_startpostion = null; // starting y position of the gamelist or menu
+		menu_item_h = null; 	// list item height
+		menu_item_p = null; 	// list item padding
+	//	menu_height = null; 	// height of the gamelist or menu
+	//	menu_width = null; 	// width of the gamelist or menu
+
+		// navigational variables
+		menu_name = null; 		// menu_name of the current menu
+		nav_down = null; 	// the menu to navigate to based on navigation settings
+		nav_up = null; 		//  "" "" "" "" ""
+		nav_left = null; 	//  "" "" "" "" ""
+		nav_right = null; 	//  "" "" "" "" ""
+		nav_back = null; 	//  "" "" "" "" ""
+		nav_change = null;  // flag to see if menu should change
+		nav_change_to = null; // menu to change to when necessary
+		
+		// Conveyour settings
+		//transition_ms: base frame animation speed
+		//stride = null:  determine how many games to skip when fast navigation is active
+		
+		// handle fake transitions for menu
+		running = false; // is the transition loop running?
+		start_time = -1; // the start time of the loop transition
+		end_time = 0; // the endtime of the loop transition
+		movement = 0; // the amount of items to move when transitioning
+		
+		constructor(name, ttime)
+		{
+			menu_name = name;
+			ui_sel_x = menu_cols / 2;
+			ui_sel_y = menu_rows / 2;
+			stride = fe.layout.page_size = menu_rows;
+			transition_ms = ttime;
+			nav_change = false;
+			base.constructor();	
+			
+			
+			// listen for ticks to handle the fake transition
+			fe.add_ticks_callback( this, "ticks_callback" );
+			
+			menu_type = type[menu]; // set the variables for the grid
+		}
+		
+		// function updates the fake transition movement 
+		function update_conveyour(tickstime)
+		{
+			if ((running) && (start_time == -1))
+			{
+				start_time = tickstime;
+				end_time = transition_ms + start_time;
+				// start the update
+				//	debug("update_conveyour: start_transition:"+movement);
+				on_transition(Transition.ToNewSelection, movement , 0);
+			
+				return;
+			}
+				// stop updating the transition
+			if ((running) && (end_time < tickstime))
+			{
+				start_time = -1;
+				running = false;
+				// have to do one last transition to tell the transition to stop
+				on_transition(Transition.ToNewSelection, movement, tickstime - start_time );
+			//	debug("update_conveyour: stop_transition");
+				return;
+			}	else {
+			//	debug("update_conveyour: update_transition");
+				on_transition(Transition.ToNewSelection, movement, tickstime - start_time );
+			}
+		}
+		
+		// starts the fake transition 
+		function start_transition(var)
+		{
+			if (running)
+				return;
+				
+			movement = var;
+			running = true;
+		//	debug("start_transition:"+ movement +" "+ running);
+			
+		}
+		
+		// handles moving the fake transiton lists if enabled
+		function move_list(direction = "right", amount = 1 )
+		{
+
+			switch (direction)
+			{
+				case "adjust":
+					amount += menu_type.list_index;
+					menu_type.list_index = (amount > menu_type.total - 1 ) ? amount % menu_type.total : amount;
+					break;
+				case "right":
+					menu_type.list_index += amount;
+					menu_type.list_index = (menu_type.list_index > menu_type.total -1 ) ? menu_type.list_index % menu_type.total : menu_type.list_index;
+					start_transition(amount)
+					break;
+				case "left":
+					menu_type.list_index -= amount;
+					menu_type.list_index = (menu_type.list_index < 0) ? (menu_type.total) - (abs(menu_type.list_index) % menu_type.total) : menu_type.list_index
+					start_transition(amount * -1)
+					break;
+			}
+		}
+		
+		function update_frame()
+		{		
+			local click = fe.add_sound("assets/sounds/selectclick.mp3"); // load wheel click sound
+			click.playing = ui_click; // play the navigation click if configured 
+			
+			
+			
+			// Movement Animation for the frame
+			
+// x = m_objs[get_sel()].gl_item_sur.x - ((sel_frame_w - (gl_item_w))/2), 
+// y = m_objs[get_sel()].gl_item_sur.y - ((sel_frame_h - (menu_item_h))/2)
+// x = (gl_item_w * ui_sel_x) + ((scr_w - menu_width)  / 2) - ((sel_frame_w - (gl_item_w))/2), 
+// y = (menu_item_h * ui_sel_y) + (menu_startpostion)         - ((sel_frame_h - (menu_item_h))/2) + (menu_item_p * ui_sel_y)			
+			
+			animation.add( PropertyAnimation( ui_frame_img, 
+				{   
+					property = "position",
+					tween = Tween.Linear, 
+					end = { 
+							x = m_objs[get_sel()].gl_item_sur.x - ((sel_frame_w - (gl_item_w))/2), 
+							y = surface_y + m_objs[get_sel()].gl_item_sur.y - ((sel_frame_h - (menu_item_h))/2)
+					}, 
+					time = transition_ms
+				} ) );
+		}
+		
+		function do_correction()
+		{
+			local corr = get_sel() - selection_index;
+			foreach ( o in m_objs )
+			{
+				local idx = o.g_art_img.index_offset - corr;
+				o.g_art_img.rawset_index_offset( idx );
+			}
+		}
+		
+		function activate()
+		{
+	
+			//m_objs[get_sel()].grow()
+			ui_frame_img.zorder = m_objs[get_sel()].gl_item_sur.zorder +1;
+			ui_frame_img.alpha = 255;
+			
+			// fade menu in
+			animation.add( PropertyAnimation( surface,
+				{   
+					property = "alpha",
+					tween = Tween.Expo,
+					easing = Easing.Out,
+					end = 255,
+					time = 1000,
+				} ) );
+			
+			// create squeeze in animate for the menu
+			animation.add( PropertyAnimation( surface,
+				{   
+					property = "height",
+					tween = Tween.Expo,
+					easing = Easing.Out,
+					start = 0
+					end = scr_h / 2.068965517,
+						time = 600,
+				} ) );
+		}	
+			
+		
+		function deactivate()
+		{
+			//	m_objs[get_sel()].shrink()
+			ui_frame_img.alpha = 0;				
+			// create squeeze out animate for the menu
+			animation.add( PropertyAnimation( surface,
+				{   
+					property = "height",
+					tween = Tween.Expo,
+					easing = Easing.Out,
+					end = 0,
+					time = 600,
+				} ) );		
+
+			// fade menu out
+			animation.add( PropertyAnimation( surface,
+				{   
+					property = "alpha",
+					tween = Tween.Expo,
+					easing = Easing.Out,
+					end = 0,
+					time = 1000,
+				} ) );
+		}
+		// get the current position of the frame (is the same index for the snap under the frame)
+		function get_sel()
+		{	
+			return ( ui_sel_x * menu_rows + ui_sel_y );
+		}
+		
+		function selected_item()
+		{
+			return get_sel() - selection_index
+		}
+		
+		// logic used to move the frame
+		function move_frame( direction )
+		{
+		
+			switch ( direction )	
+			{
+			case "left":
+				if ( ui_sel_x > 0 ) 
+				{
+		//			m_objs[get_sel()].shrink();
+					ui_sel_x--;
+					update_frame();
+		//			m_objs[get_sel()].grow();
+					ui_frame_img.zorder = m_objs[get_sel()].gl_item_sur.zorder +1;
+				}
+				else
+				{
+		//			m_objs[get_sel()].shrink();
+					transition_swap_point=0.3;
+					do_correction();
+					move_list(menu_type.left, stride);
+		//			m_objs[get_sel()].grow();
+				}
+				
+				return true;
+				break;
+				
+			case "right":
+				if ( ui_sel_x < menu_cols - 1 ) 
+				{
+		//			m_objs[get_sel()].shrink();
+					ui_sel_x++;
+					update_frame();
+		//			m_objs[get_sel()].grow();
+					ui_frame_img.zorder = m_objs[get_sel()].gl_item_sur.zorder +1;
+				}
+				else
+				{					
+		//			m_objs[get_sel()].shrink();
+					transition_swap_point=0.3;
+					do_correction();
+					move_list(menu_type.right, stride);
+		//			m_objs[get_sel()].grow();
+				}
+				
+				return true;
+				break;
+				
+			case "up":
+				transition_swap_point=0.0;
+				if ( ui_sel_y > 0 ) 
+				{
+		//			m_objs[get_sel()].shrink();
+					ui_sel_y--;
+					update_frame();
+		//			m_objs[get_sel()].grow();
+					ui_frame_img.zorder = m_objs[get_sel()].gl_item_sur.zorder +1;
+				}
+				else
+				{
+					return false;
+				}
+				return true;
+				break;
+				
+			case "down":
+				transition_swap_point=0.0;
+				if ( ui_sel_y < menu_rows - 1 ) 
+				{
+		//			m_objs[get_sel()].shrink();
+					ui_sel_y++;
+					update_frame();
+		//			m_objs[get_sel()].grow();
+					ui_frame_img.zorder = m_objs[get_sel()].gl_item_sur.zorder +1;
+				}
+				else
+				{
+					return false;
+				}
+				return true;
+				break;
+				
+			case "back":					
+				nav_change = true;
+				return false;
+				break;
+				
+			case "select":
+			default:
+				reset_index();
+				break;
+			}
+			
+			// return the selected index offset of the current frame
+			return false;
+		}
+		function reset_index()
+		{
+				// Correct the list index if it doesn't align with
+				// the game our frame is on
+				//
+				enabled=false; // turn conveyor off for this switch
+				local frame_index = get_sel();
+			
+				move_list(menu_type.adjust, frame_index - selection_index);
+
+				set_selection( frame_index );
+				update_frame();
+				
+				enabled=true; // re-enable conveyor
+		}
+		
+		function on_transition( ttype, var, ttime )
+		{
+			
+			switch ( ttype )
+			{
+			case Transition.StartLayout:
+			case Transition.FromGame:
+				ui_frame_img.alpha = 255; // 
+				break;
+
+			case Transition.ToGame:
+			case Transition.EndLayout:
+				
+				ui_frame_img.alpha = 0;
+
+				break;
+			}
+
+			return base.on_transition( ttype, var, ttime );
+		}
+	}

@@ -1,0 +1,72 @@
+class ConveyourList
+{
+	x = null;
+	y = null;
+	width = null;
+	height = null;
+	index_offset = null;
+	alpha = null;
+	visible = null;
+	list_type =null;
+	internal = null;
+	type_flag = null;
+	preserve_aspect_ratio = null;
+	video_flags = null;
+	rawset_index_offset = null;
+	
+	constructor(type)
+	{
+		index_offset = 0;
+		list_type=type; // filters or display
+		alpha = 255;
+		visible = true;
+		preserve_aspect_ratio = false;
+		video_flags = Vid.Default;
+		
+		if (type == "filters")
+		{
+			internal = fe.add_image("assets/filters/" + fe.filters[index_offset].name + ".png");
+			type_flag = true; // filters
+		} else {
+			internal = fe.add_image("assets/displays/" + fe.displays[index_offset].name + ".png");
+			type_flag = false;
+		}
+		rawset_index_offset = internal.rawset_index_offset
+		fe.add_transition_callback("update_image");
+	}
+	
+	function update_image()
+	{
+		if (type_flag)
+		{
+			if ((index_offset > 0) && (index_offset > fe.filters.len()-1)) 
+				index_offset = index_offset % fe.filters.len()-1 
+			else if ((index_offset < 0) && (abs(index_offset) < fe.filters.len()-1))
+				index_offset = fe.filters.len()-1 - (fe.filters.len() - 1 - abs(index_offset) )
+			else if ((index_offset < 0) && (abs(index_offset) > fe.filters.len()-1))
+				index_offset = fe.filters.len() - 1 - ( fe.filters.len() - 1 - (abs(index_offset) % (fe.filters.len() - 1 ) ))
+			
+			internal.file_name = "assets/filters/" + fe.filters[index_offset].name + ".png"
+				
+				
+		} else {
+			
+			if ((index_offset > 0) && (index_offset > fe.displays.len()-1)) 
+				index_offset = index_offset % fe.displays.len()-1 
+			else if ((index_offset < 0) && (abs(index_offset) < fe.displays.len()-1))
+				index_offset = fe.displays.len()-1 - (fe.displays.len()-1 - abs(index_offset) )
+			else if ((index_offset < 0) && (abs(index_offset) > fe.displays.len()-1))
+				index_offset = fe.displays.len() - 1 - ( fe.displays.len() - 1 - (abs(index_offset) % (fe.displays.len() - 1 ) ))
+			
+			internal.file_name = "assets/displays/" + fe.displays[index_offset].name + ".png"
+			
+		}
+		
+			internal.set_pos(x,y,width,height);
+			internal.alpha = alpha;
+			internal.visible = visible;
+			internal.preserve_aspect_ratio = preserve_aspect_ratio;
+			internal.video_flags = video_flags;
+			internal.rawset_index_offset = rawset_index_offset;
+	}
+}

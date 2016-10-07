@@ -1,0 +1,19 @@
+ToDO
+
+- All Menu text receives an alpha fade when the menu row is not active
+- Selected Menu Sections receive the 208,47,47 overlay when active / animate to make this happen
+- OPTION
+- OPTION: Adjust Padding
+- OPTION: INFO SCREEN DESIGN: FLYER / STATIC SNAP; STATIC SNAP / FLYER; STATIC SNAP; FLYER; FLYER / VIDEO SNAP; STATIC VIDEO / FLYER;
+- When a menu is selected, have the entire menu row slide down and expose the options for the selected menu. / grow the selected item
+- When choosing a menu item, have the entire menu animate left to right to show the selected item
+- INFO SCREEN DESIGN: [FLYER / VARIABLE], [SNAP / VARIABLE], NAME, WHEEL, MANUFACTURE LOGO, YEAR, GENRE, # of PLAYERS, # of TIMES PLAYED, TOTAL PLAYING TIME
+
+
+
+Programming:
+
+
+- use a table to hold the screen aspect and what the multiplication ratios should be
+
+
