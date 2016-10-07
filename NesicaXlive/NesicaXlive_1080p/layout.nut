@@ -323,10 +323,9 @@ if (my_config["aspect_ratio"] == "No")
 					update_frame();
 				}
 				else{
-				//do_correction();
+				do_correction();
 				fe.signal( "prev_page" )
 				 Wheelclick.playing=true
-					//return false;
 				}
 				return true;
 				break;
@@ -347,9 +346,9 @@ if (my_config["aspect_ratio"] == "No")
 				}
 				else{
 				    Wheelclick.playing=true
-				//	do_correction();
+					do_correction();
 					fe.signal( "next_page" )
-				//	return false;
+
 				}
 				return true;
 				break;
@@ -581,74 +580,13 @@ if (my_config["aspect_ratio"] == "No")
 					pulse = false,
 					time = transition_ms * 5
 					} ) );	
-					
-     
-	
-				
+		
 		}
 	
 					
 			
 		function on_progress( progress, var )
 		{
-			// if ( vert_flow )
-			// {
-				// local r = m_num / rows;
-				// local c = m_num % rows;
-
-				// if ( abs( var ) < rows)
-				// {
-					// if (select_status == true)
-					// {   
-			            // snap.x = c * width + PADX + 90 -  snap_width_delta + PADX + 1
-						// snap.y = ((fe.layout.height / 1.51 + r * height + PADY)- snap_height_delta)+ PADY + 1;
-				
-					// } 
-			    // }
-					
-
-			// if ( abs( var ) < rows )
-			// {
-				// snap.x = c * width + PADX + 90;
-				// snap.y = fe.layout.height / 36 + r * height + PADY + 675;
-			// }
-			// else
-			// {
-				// local prog = ::gridc.transition_progress;
-				// if ( prog > ::gridc.transition_swap_point )
-				// {
-					// if ( var > 0 ) c++;
-					// else c--;
-				// }
-
-				// if ( var > 0 ) prog *= -1;
-
-				// snap.x = ( c + prog ) * width + PADX + 90;
-				// snap.y = fe.layout.height / 36 + r * height + PADY + 675;
-			// }
-		// } else {
-				// local r = m_num / cols;
-				// local c = m_num % cols;
-
-				// if ( abs( var ) < cols)
-				// {
-					// if (select_status == true)
-					// {   
-			
-
-						// snap.x = (((fe.layout.width /1.10 * ( progress * rows - r ) +  ((fe.layout.width - (fe.layout.width / 1.105448275)) / 2))- snap_width_delta) + PADX - 2) ;
-						// snap.y = ((fe.layout.height / 1.51 + r * height + PADY)- snap_height_delta)+ PADY + 1;
-				
-					// } else {
-						// snap.x = ((fe.layout.width /1.10 * ( progress * rows - r ) +  ((fe.layout.width - (fe.layout.width / 1.105448275)) / 2)) + PADX - 2);
-						// snap.y = ((fe.layout.height / 1.51 + r * height + PADY)+ PADY + 1);
-					// }
-				// }
-			// }
-			
-			// if ( var == 0 )
-				// m_shifted = false;
-
 			local r = m_num % rows;
 			local c = m_num / rows;
 
@@ -684,11 +622,8 @@ if (my_config["aspect_ratio"] == "No")
 				 snap.y = ((fe.layout.height / 1.51) + r * height);
 				
 					
-					// snap.x = ((fe.layout.width /1.10 * ( progress * rows - r ) +  ((fe.layout.width - (fe.layout.width / 1.105448275)) / 2)) + PADX - 2);
-				// snap.y = ((fe.layout.height / 1.51 + r * height + PADY)+ PADY + 1);
 			}
 		}
-		
 		
 		
 		function preserveAspect(value)
